@@ -1,0 +1,7 @@
+env/
+HRMS/__pycache__/
+HRMSAPP/__pycache__/
+HRMSAPP/migrations/
+HRMS/settings.py/
+
+

@@ -1,0 +1,13 @@
+/hr/signup/
+/hr/login/
+/hr/logout/
+/hr/add-candidate/
+/hr/domain-interest/
+/hr/domain-interest/1/
+/hr/tech-area/
+/hr/add-candidate/3/
+/hr/tech-area/1/
+/hr/qualification/
+/hr/qualification/1/
+/hr/candidate-tech-area/
+/hr/candidate-tech-area/1/
