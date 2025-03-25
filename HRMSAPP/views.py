@@ -452,3 +452,19 @@ class Search(APIView):
         ).filter(is_deleted=False).distinct()
         serializer = CandidateSerializer(results, many=True)
         return Response(serializer.data)
+
+        return Response(serializer.data)
+
+class QualificationSearch(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        qualification_id = request.GET.get("qualification")
+        
+        if not qualification_id:
+            return Response({"error": "Please select a qualification"}, status=400)
+
+        candidates = Candidate.objects.filter(qualification__id__iexact=qualification_id, is_deleted=False).distinct()
+        serializer = CandidateSerializer(candidates, many=True)
+
+        return Response(serializer.data)
