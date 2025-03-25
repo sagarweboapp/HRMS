@@ -453,8 +453,6 @@ class Search(APIView):
         serializer = CandidateSerializer(results, many=True)
         return Response(serializer.data)
 
-        return Response(serializer.data)
-
 class QualificationSearch(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -468,3 +466,133 @@ class QualificationSearch(APIView):
         serializer = CandidateSerializer(candidates, many=True)
 
         return Response(serializer.data)
+
+class InternshipView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        internships = Internship.objects.filter(is_deleted=False,candidate_profile__is_selected=True)
+        serializer = InternshipSerializer(internships, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+
+        existing_internship = Internship.objects.filter(candidate_profile=request.data.get('candidate_profile'),is_deleted=True).first()
+
+        if existing_internship:
+     
+            existing_internship.is_deleted = False
+            existing_internship.DeletedDateTime = None 
+            existing_internship.ModifiedByUserid = request.user
+            existing_internship.ModifyDateTime = timezone.now()
+            existing_internship.save()
+            return Response({"message": "Internship restored successfully"}, status=status.HTTP_200_OK)
+        
+
+        serializer = InternshipSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(ModifiedByUserid = request.user, ModifyDateTime = timezone.now())
+            return Response({"message": "Internship created successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class InternshipDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Internship.objects.get(pk=pk, is_deleted=False,candidate_profile__is_selected=True)
+        except Internship.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        internship = self.get_object(pk)
+        if internship:
+            serializer = InternshipSerializer(internship)
+            return Response(serializer.data)
+        return Response({"detail": "Internship not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def put(self, request, pk):
+        internship = self.get_object(pk)
+        if internship:
+            serializer = InternshipSerializer(internship, data=request.data)
+            if serializer.is_valid():
+                serializer.save(ModifiedByUserid = request.user, ModifyDateTime = timezone.now())
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Internship not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+    def delete(self, request, pk):
+        internship = self.get_object(pk)
+        if internship:
+            internship.is_deleted = True
+            internship.DeletedByUserid=request.user
+            internship.DeletedDateTime=timezone.now()
+            internship.save()
+            return Response({"message": "Internship deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"detail": "Internship not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class SelectionAndJoiningView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        employees = SelectionAndJoining.objects.filter(is_deleted=False,Experienced_candidate__is_selected=True).union(SelectionAndJoining.objects.filter(is_deleted=False,Intern_candidate__completed_internship=True))
+        serializer = SelectionAndJoiningSerializer(employees, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+
+        existing_employees=SelectionAndJoining.objects.filter(Intern_candidate=request.data.get('Intern_candidate'),Experienced_candidate=request.data.get('Experienced_candidate'),is_deleted=True).first()
+        if existing_employees:
+     
+            existing_employees.is_deleted = False
+            existing_employees.DeletedDateTime = None 
+            existing_employees.ModifiedByUserid = request.user
+            existing_employees.ModifyDateTime = timezone.now()
+            existing_employees.save()
+            return Response({"message": "joining restored successfully"}, status=status.HTTP_200_OK)
+        
+        serializer = SelectionAndJoiningSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(ModifiedByUserid = request.user, ModifyDateTime = timezone.now())
+            return Response({"message": "joining created successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class SelectionAndJoiningDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return SelectionAndJoining.objects.get(pk=pk, is_deleted=False,Experienced_candidate__is_selected=True,Intern_candidate__completed_internship=True)
+        except SelectionAndJoining.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        joined = self.get_object(pk)
+        if joined:
+            serializer = SelectionAndJoiningSerializer(joined)
+            return Response(serializer.data)
+        return Response({"detail": "joining data not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def put(self, request, pk):
+        joined = self.get_object(pk)
+        if joined:
+            serializer = SelectionAndJoiningSerializer(joined, data=request.data)
+            if serializer.is_valid():
+                serializer.save(ModifiedByUserid = request.user, ModifyDateTime = timezone.now())
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Joining data not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+    def delete(self, request, pk):
+        joining = self.get_object(pk)
+        if joining:
+            joining.is_deleted = True
+            joining.DeletedByUserid=request.user
+            joining.DeletedDateTime=timezone.now()
+            joining.save()
+            return Response({"message": "Joining data deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"detail": "Joining data not found"}, status=status.HTTP_404_NOT_FOUND)

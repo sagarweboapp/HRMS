@@ -95,6 +95,7 @@ class Candidate(models.Model):
     DeletedByUserid = models.ForeignKey(HR, on_delete=models.SET_NULL, null=True, blank=True, related_name='delete_record')
     DeletedDateTime = models.DateTimeField(null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
+    is_selected=models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -138,7 +139,7 @@ class Interview(models.Model):
         ('Rescheduled', 'Rescheduled'),
         ('Completed', 'Completed'),
         ('Cancelled', 'Cancelled'))
-    candidate_profile = models.ForeignKey(Candidate, related_name='interview_candidate',on_delete=models.CASCADE )
+    candidate_profile = models.ForeignKey(Candidate, related_name='interview_candidate',on_delete=models.CASCADE,unique=True )
     ModifiedByUserid = models.ForeignKey(HR, on_delete=models.SET_NULL, null=True, blank=True, related_name='modified_interviews')
     ModifyDateTime = models.DateTimeField(null=True, blank=True)
     DeletedByUserid = models.ForeignKey(HR, on_delete=models.SET_NULL, null=True, blank=True, related_name='deleted_interviews')
@@ -156,3 +157,40 @@ class Interview(models.Model):
 
     def __str__(self):
         return f"Interview for {self.candidate_profile.name} on {self.interview_date} at {self.interview_time}"
+    
+
+class Internship(models.Model):
+    candidate_profile = models.OneToOneField(Candidate, related_name='internship_candidate',on_delete=models.CASCADE,unique=True )
+    approximate_offered_joining_date = models.DateField()
+    actual_joining_date = models.DateField(null=True, blank=True)
+    month_duration_of_internship = models.IntegerField()
+    stipend_offered_per_month = models.DecimalField(max_digits=10, decimal_places=2)
+    ModifiedByUserid = models.ForeignKey(HR, on_delete=models.SET_NULL, null=True, blank=True, related_name='modified_internships')
+    ModifyDateTime = models.DateTimeField(null=True, blank=True)
+    DeletedByUserid = models.ForeignKey(HR, on_delete=models.SET_NULL, null=True, blank=True, related_name='deleted_internships')
+    DeletedDateTime = models.DateTimeField(null=True, blank=True)
+    is_deleted = models.BooleanField(default=False)
+    completed_internship = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Internship for {self.candidate_profile.name} - {self.month_duration_of_internship} months"
+    
+class SelectionAndJoining(models.Model):
+    Experienced_candidate = models.OneToOneField(Candidate, on_delete=models.CASCADE,null=True, blank=True)
+    Intern_candidate = models.OneToOneField(Internship, on_delete=models.CASCADE,null=True, blank=True)
+    offered_joining_date = models.DateField()
+    joining_date = models.DateField(null=True, blank=True)
+    offered_package_annually = models.DecimalField(max_digits=12, decimal_places=2)
+    salary_per_month = models.DecimalField(max_digits=12, decimal_places=2) 
+    ModifiedByUserid = models.ForeignKey(HR, on_delete=models.SET_NULL, null=True, blank=True, related_name='modified_joining')
+    ModifyDateTime = models.DateTimeField(null=True, blank=True)
+    DeletedByUserid = models.ForeignKey(HR, on_delete=models.SET_NULL, null=True, blank=True, related_name='deleted_joining')
+    DeletedDateTime = models.DateTimeField(null=True, blank=True)
+    is_deleted = models.BooleanField(default=False)
+
+    def __str__(self):
+        if self.Experienced_candidate:
+            return f"Experienced: {self.Experienced_candidate.name} - Joining on {self.joining_date or 'Not Assigned'}"
+        elif self.Intern_candidate:
+            return f"Intern: {self.Intern_candidate.candidate_profile.name} - Joining on {self.joining_date or 'Not Assigned'}"
+        return "Selection Not Assigned"
