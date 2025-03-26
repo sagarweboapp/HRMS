@@ -20,7 +20,7 @@ urlpatterns = [
     path('candidates/search/', Search.as_view(), name='search-api'),
     path('candidates/search/qualification', QualificationSearch.as_view(), name='search-api-qualification'),
     path('interns/', InternshipView.as_view(), name='internship'),
-    path('interns//<int:pk>/', InternshipDetailView.as_view(), name='internshipid'),
+    path('interns/<int:pk>/', InternshipDetailView.as_view(), name='internshipid'),
     path('employee-joining-data/', SelectionAndJoiningView.as_view(), name='employee'),
     path('employee-joining-data/<int:pk>/', SelectionAndJoiningDetailView.as_view(), name='employee-id')
 

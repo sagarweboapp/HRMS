@@ -98,17 +98,24 @@ class SelectionAndJoiningSerializer(serializers.ModelSerializer):
         model = SelectionAndJoining
         fields = '__all__'
     
-    Experienced_candidate = serializers.PrimaryKeyRelatedField(queryset=Candidate.objects.filter(is_selected=True))
+    Experienced_candidate = serializers.PrimaryKeyRelatedField(queryset=Candidate.objects.filter(is_selected=True),allow_null=True,required=False,)
 
-    Intern_candidate = serializers.PrimaryKeyRelatedField(queryset=Internship.objects.filter(candidate_profile__is_selected=True, completed_internship=True))
+    Intern_candidate = serializers.PrimaryKeyRelatedField(queryset=Internship.objects.filter(candidate_profile__is_selected=True, completed_internship=True),allow_null=True,required=False,)
 
     def validate(self, data):
         offered_date = data.get('offered_joining_date')
         joining_date = data.get('joining_date')
-
-        if not data.get('Experienced_candidate') and not data.get('Intern_candidate'):
-            raise serializers.ValidationError("Either 'Experienced_candidate' or 'Intern_candidate' must be selected.")
+        Intern_candidate=data.get('Intern_candidate')
+        Experienced_candidate=data.get('Experienced_candidate')
         
+        if data.get('Experienced_candidate') and data.get('Intern_candidate'):
+            raise serializers.ValidationError("Both 'Experienced_candidate' and 'Intern_candidate' can't be selected.")
+
         if joining_date and joining_date < offered_date:
             raise serializers.ValidationError("Joining date cannot be before the offered joining date.")
+        
+        if (Intern_candidate and SelectionAndJoining.objects.filter(Intern_candidate=Intern_candidate,is_deleted=False).exists()) or (Experienced_candidate and SelectionAndJoining.objects.filter(Experienced_candidate=Experienced_candidate,is_deleted=False).exists()):
+            raise serializers.ValidationError("This intern or experienced has already been assigned.")
+        
         return data
+    

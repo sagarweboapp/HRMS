@@ -108,7 +108,7 @@ class CandidateGetUpdateDeleteView(APIView):
     def put(self, request, pk):
         candidate = self.get_object(pk)
         if candidate:
-            serializer = CandidateSerializer(candidate, data=request.data)
+            serializer = CandidateSerializer(candidate, data=request.data,partial=True)
             if serializer.is_valid():
                 serializer.save(ModifiedByUserid = request.user, ModifyDateTime = timezone.now())
                 return Response(serializer.data)
@@ -170,7 +170,7 @@ class TechAreaUpdateDeleteView(APIView):
     def put(self, request, pk):
         tech_area = self.get_object(pk)
         if tech_area:
-            serializer = TechAreaSerializer(tech_area, data=request.data)
+            serializer = TechAreaSerializer(tech_area, data=request.data,partial=True)
             if serializer.is_valid():
                 serializer.save(ModifiedByUserid = request.user, ModifyDateTime = timezone.now())
                 return Response({"message": "TechArea updated successfully"})
@@ -233,7 +233,7 @@ class DomainInterestUpdateDeleteView(APIView):
     def put(self, request, pk):
         domain_area = self.get_object(pk)
         if domain_area:
-            serializer = DomainInterestSerializer(domain_area, data=request.data)
+            serializer = DomainInterestSerializer(domain_area, data=request.data,partial=True)
             if serializer.is_valid():
                 serializer.save(ModifiedByUserid = request.user, ModifyDateTime = timezone.now())
                 return Response({"message": "Domain updated successfully"})
@@ -297,7 +297,7 @@ class QualificationUpdateDeleteView(APIView):
     def put(self, request, pk):
         qualification = self.get_object(pk)
         if qualification:
-            serializer = QualificationSerializer(qualification, data=request.data)
+            serializer = QualificationSerializer(qualification, data=request.data,partial=True)
             if serializer.is_valid():
                 serializer.save(ModifiedByUserid = request.user, ModifyDateTime = timezone.now())
                 return Response({"message": "Qualification updated successfully"})
@@ -348,7 +348,7 @@ class CandidateTechAreaUpdateDeleteView(APIView):
     def put(self, request, pk):
         candidate_tech_area = self.get_object(pk)
         if candidate_tech_area:
-            serializer = CandidateTechAreaSerializer(candidate_tech_area, data=request.data)
+            serializer = CandidateTechAreaSerializer(candidate_tech_area, data=request.data,partial=True)
             if serializer.is_valid():
                 serializer.save(ModifiedByUserid = request.user, ModifyDateTime = timezone.now())
                 return Response({"message": "CandidateTechArea updated successfully"})
@@ -514,7 +514,7 @@ class InternshipDetailView(APIView):
     def put(self, request, pk):
         internship = self.get_object(pk)
         if internship:
-            serializer = InternshipSerializer(internship, data=request.data)
+            serializer = InternshipSerializer(internship, data=request.data,partial=True)
             if serializer.is_valid():
                 serializer.save(ModifiedByUserid = request.user, ModifyDateTime = timezone.now())
                 return Response(serializer.data, status=status.HTTP_200_OK)
@@ -542,15 +542,18 @@ class SelectionAndJoiningView(APIView):
 
     def post(self, request):
 
-        existing_employees=SelectionAndJoining.objects.filter(Intern_candidate=request.data.get('Intern_candidate'),Experienced_candidate=request.data.get('Experienced_candidate'),is_deleted=True).first()
+        existing_employees=SelectionAndJoining.objects.filter(Q(Intern_candidate=request.data.get('Intern_candidate'))| Q(Experienced_candidate=request.data.get('Experienced_candidate')),is_deleted=True).first()
         if existing_employees:
-     
+            
             existing_employees.is_deleted = False
             existing_employees.DeletedDateTime = None 
             existing_employees.ModifiedByUserid = request.user
             existing_employees.ModifyDateTime = timezone.now()
             existing_employees.save()
             return Response({"message": "joining restored successfully"}, status=status.HTTP_200_OK)
+        
+        if not request.data.get('Experienced_candidate') and not request.data.get('Intern_candidate'):
+            raise serializers.ValidationError("Either 'Experienced_candidate' or 'Intern_candidate' must be selected.")
         
         serializer = SelectionAndJoiningSerializer(data=request.data)
         if serializer.is_valid():
@@ -565,7 +568,7 @@ class SelectionAndJoiningDetailView(APIView):
 
     def get_object(self, pk):
         try:
-            return SelectionAndJoining.objects.get(pk=pk, is_deleted=False,Experienced_candidate__is_selected=True,Intern_candidate__completed_internship=True)
+            return SelectionAndJoining.objects.filter(pk=pk, is_deleted=False).filter(Q(Experienced_candidate__is_selected=True) | Q(Intern_candidate__completed_internship=True)).first()
         except SelectionAndJoining.DoesNotExist:
             return None
 
@@ -577,9 +580,29 @@ class SelectionAndJoiningDetailView(APIView):
         return Response({"detail": "joining data not found"}, status=status.HTTP_404_NOT_FOUND)
 
     def put(self, request, pk):
+
+        existing_employees=SelectionAndJoining.objects.filter(Q(Intern_candidate=request.data.get('Intern_candidate'))| Q(Experienced_candidate=request.data.get('Experienced_candidate')),is_deleted=True,pk=pk).first()
+        if existing_employees:
+            
+            existing_employees.is_deleted = False
+            existing_employees.DeletedDateTime = None 
+            existing_employees.ModifiedByUserid = request.user
+            existing_employees.ModifyDateTime = timezone.now()
+            existing_employees.save()
+            return Response({"message": "joining restored successfully"}, status=status.HTTP_200_OK)
+
         joined = self.get_object(pk)
         if joined:
-            serializer = SelectionAndJoiningSerializer(joined, data=request.data)
+            data = request.data.copy()
+            if joined.Experienced_candidate and request.data.get('Intern_candidate'):
+                data["Experienced_candidate"]=None
+                data["Intern_candidate"]=request.data.get('Intern_candidate')
+
+            if joined.Intern_candidate and request.data.get('Experienced_candidate'):
+                data["Intern_candidate"]=None
+                data["Experienced_candidate"]=request.data.get('Experienced_candidate')
+
+            serializer = SelectionAndJoiningSerializer(joined, data=data,partial=True)
             if serializer.is_valid():
                 serializer.save(ModifiedByUserid = request.user, ModifyDateTime = timezone.now())
                 return Response(serializer.data, status=status.HTTP_200_OK)
