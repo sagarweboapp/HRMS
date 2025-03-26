@@ -139,7 +139,7 @@ class Interview(models.Model):
         ('Rescheduled', 'Rescheduled'),
         ('Completed', 'Completed'),
         ('Cancelled', 'Cancelled'))
-    candidate_profile = models.ForeignKey(Candidate, related_name='interview_candidate',on_delete=models.CASCADE,unique=True )
+    candidate_profile = models.ForeignKey(Candidate, related_name='interview_candidate',on_delete=models.CASCADE )
     ModifiedByUserid = models.ForeignKey(HR, on_delete=models.SET_NULL, null=True, blank=True, related_name='modified_interviews')
     ModifyDateTime = models.DateTimeField(null=True, blank=True)
     DeletedByUserid = models.ForeignKey(HR, on_delete=models.SET_NULL, null=True, blank=True, related_name='deleted_interviews')
@@ -160,7 +160,7 @@ class Interview(models.Model):
     
 
 class Internship(models.Model):
-    candidate_profile = models.OneToOneField(Candidate, related_name='internship_candidate',on_delete=models.CASCADE,unique=True )
+    candidate_profile = models.OneToOneField(Candidate, related_name='internship_candidate',on_delete=models.CASCADE)
     approximate_offered_joining_date = models.DateField()
     actual_joining_date = models.DateField(null=True, blank=True)
     month_duration_of_internship = models.IntegerField()
