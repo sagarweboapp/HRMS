@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from .serializers import *
 from django.utils import timezone
 from django.db.models import Q
+from rest_framework.pagination import PageNumberPagination
 
 class HRSignupView(APIView):
     permission_classes = [AllowAny]
@@ -69,9 +70,27 @@ class CandidateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        candidates = Candidate.objects.filter(is_deleted=False)
-        serializer = CandidateSerializer(candidates, many=True)
-        return Response(serializer.data)
+    
+        paginator=PageNumberPagination()
+        candidates = Candidate.objects.filter(is_deleted=False).order_by('name')
+        query = request.GET.get("query")
+        qualification_id = request.GET.get("qualification")
+        if qualification_id:
+            candidates = Candidate.objects.filter(qualification__id__iexact=qualification_id, is_deleted=False).distinct().order_by('name')
+        elif query:
+            candidates = Candidate.objects.filter(
+            Q(name__icontains=query) | 
+            Q(mobile__icontains=query) | 
+            Q(email__icontains=query) |
+            Q(qualification__qualification_name__icontains=query) | 
+            Q(domain_of_interest__domain_name__icontains=query) |
+            Q(interview_candidate__status__icontains=query) |
+            Q(interview_candidate__joining_date__icontains=query)
+        ).filter(is_deleted=False).distinct().order_by('name')
+        if candidates.exists():
+            paginated = paginator.paginate_queryset(candidates, request)
+        serializer = CandidateSerializer(paginated, many=True)
+        return paginator.get_paginated_response(serializer.data)
     
     def post(self, request):
         existing_candidate = Candidate.objects.filter(email=request.data.get('email'),is_deleted=True).first()
@@ -435,38 +454,6 @@ class InterviewUpdateDelete(APIView):
             return Response({"message": "Schedule deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         return Response({"detail": "Schedule not found"}, status=status.HTTP_404_NOT_FOUND)
     
-class Search(APIView):
-    permission_classes = [IsAuthenticated]
-    def get(self, request):
-        query = request.GET.get("query")
-        if not query:
-            return Response({"error": "Please enter something to Search"}, status=400)
-        results = Candidate.objects.filter(
-            Q(name__icontains=query) | 
-            Q(mobile__icontains=query) | 
-            Q(email__icontains=query) |
-            Q(qualification__qualification_name__icontains=query) | 
-            Q(domain_of_interest__domain_name__icontains=query) |
-            Q(interview_candidate__status__icontains=query) |
-            Q(interview_candidate__joining_date__icontains=query)
-        ).filter(is_deleted=False).distinct()
-        serializer = CandidateSerializer(results, many=True)
-        return Response(serializer.data)
-
-class QualificationSearch(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        qualification_id = request.GET.get("qualification")
-        
-        if not qualification_id:
-            return Response({"error": "Please select a qualification"}, status=400)
-
-        candidates = Candidate.objects.filter(qualification__id__iexact=qualification_id, is_deleted=False).distinct()
-        serializer = CandidateSerializer(candidates, many=True)
-
-        return Response(serializer.data)
-
 class InternshipView(APIView):
     permission_classes = [IsAuthenticated]
 
