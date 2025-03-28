@@ -73,11 +73,12 @@ class CandidateView(APIView):
     
         paginator=PageNumberPagination()
         candidates = Candidate.objects.filter(is_deleted=False).order_by('name')
+        
         query = request.GET.get("query")
         qualification_id = request.GET.get("qualification")
         if qualification_id:
             candidates = Candidate.objects.filter(qualification__id__iexact=qualification_id, is_deleted=False).distinct().order_by('name')
-        elif query:
+        if query:
             candidates = Candidate.objects.filter(
             Q(name__icontains=query) | 
             Q(mobile__icontains=query) | 

@@ -145,7 +145,7 @@ class Interview(models.Model):
     DeletedByUserid = models.ForeignKey(HR, on_delete=models.SET_NULL, null=True, blank=True, related_name='deleted_interviews')
     DeletedDateTime = models.DateTimeField(null=True, blank=True)
     is_deleted = models.BooleanField(default=False)    
-    joining_date = models.DateField(null=True, blank=True)
+    # joining_date = models.DateField(null=True, blank=True)
     interview_date = models.DateField()
     interview_time = models.TimeField()
     interviewers = models.TextField(null=True, blank=True) 
